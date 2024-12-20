@@ -8,7 +8,7 @@ export type modelConfigType = {
   batch_size: number;
   hidden_size: number;
   learning_rate: number;
-  droppout: number;
+  dropout: number;
 };
 
 export type resultType = {

@@ -1,12 +1,14 @@
 "use client";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { modelConfigType, resultType } from "@/types";
-import util from "util";
+
+const LineChart = dynamic(() => import("../components/linechart"), {
+  ssr: false,
+});
 export default function Home() {
-  const LineChart = dynamic(() => import("../components/linechart"), {
-    ssr: false,
-  });
+  const ref = useRef(null);
+
   const [elu, setElu] = useState<resultType>({
     predictions: [],
     actuals: [],
@@ -17,6 +19,7 @@ export default function Home() {
       r2: 0,
     },
   });
+
   const [tanh, setTanh] = useState<resultType>({
     predictions: [],
     actuals: [],
@@ -27,163 +30,197 @@ export default function Home() {
       r2: 0,
     },
   });
+
+  const [modelConfigInput, setModelConfigInput] = useState({
+    ticker: "",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
+    sequence_length: "",
+    epochs: "",
+    train_split: "",
+    batch_size: "",
+    hidden_size: "",
+    learning_rate: "",
+    dropout: "",
+  });
+
   const [modelConfig, setModelConfig] = useState<modelConfigType>({
     ticker: "",
-    startDate: "",
-    endDate: "",
+    startDate: new Date().toISOString().split("T")[0],
+    endDate: new Date().toISOString().split("T")[0],
     sequence_length: 0,
     epochs: 0,
     train_split: 0,
     batch_size: 0,
     hidden_size: 0,
     learning_rate: 0,
-    droppout: 0,
+    dropout: 0,
   });
 
   const onSubmit = () => {
-    fetch("", {
+    fetch("/api/your-endpoint", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(modelConfig),
-    }).then((res) => {
-      res.json().then((data) => {
-        const elu = data.results.ELU;
-        const tanh = data.results.Tanh;
-        setElu(elu);
-        setTanh(tanh);
-      });
-    });
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setElu(data.results.ELU);
+        setTanh(data.results.Tanh);
+      })
+      .catch((error) => console.error("Error:", error));
   };
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen  gap-16 font-[family-name:var(--font-geist-sans)]">
-      <nav className="flex h-[50px] shadow w-full sticky top-0 py-4 px-3 ">
+    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen gap-16 font-[family-name:var(--font-geist-sans)]">
+      <nav className="flex h-[50px] shadow w-full sticky top-0 py-4 px-3">
         <p>Thesis Prototype</p>
-        <ul className="flex">
-          <li></li>
-        </ul>
       </nav>
+
       <main className="flex flex-col w-full h-full gap-8 row-start-2 items-center sm:items-start">
         <div className="flex justify-center w-full gap-10">
           <div className="flex flex-col gap-2">
-            <label htmlFor="">Ticker</label>
+            <label htmlFor="ticker">Ticker</label>
             <input
               type="text"
-              value={modelConfig.ticker}
+              value={modelConfigInput.ticker}
               onChange={(e) =>
-                setModelConfig({ ...modelConfig, ticker: e.target.value })
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  ticker: e.target.value,
+                })
               }
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">Start Date:</label>
+
+            <label htmlFor="startDate">Start Date:</label>
             <input
-              value={modelConfig.startDate}
-              onChange={(e) =>
-                setModelConfig({ ...modelConfig, startDate: e.target.value })
-              }
               type="date"
+              value={modelConfigInput.startDate}
+              onChange={(e) =>
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  startDate: e.target.value,
+                })
+              }
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">End Date:</label>
+
+            <label htmlFor="endDate">End Date:</label>
             <input
-              value={modelConfig.endDate}
-              onChange={(e) =>
-                setModelConfig({ ...modelConfig, endDate: e.target.value })
-              }
               type="date"
-              className="shadow border border-neutral-400 rounded outline-none px-2"
-            />
-            <label htmlFor="">Sequence Length:</label>
-            <input
-              value={modelConfig.sequence_length}
+              value={modelConfigInput.endDate}
               onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  sequence_length: parseInt(e.target.value),
-                })
-              }
-              type="number"
-              className="shadow border border-neutral-400 rounded outline-none px-2"
-            />
-            <label htmlFor="">Epochs:</label>
-            <input
-              type="number"
-              value={modelConfig.epochs}
-              onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  epochs: parseInt(e.target.value),
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  endDate: e.target.value,
                 })
               }
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">Train Split:</label>
+
+            <label htmlFor="sequence_length">Sequence Length:</label>
             <input
-              value={modelConfig.train_split}
+              type="number"
+              value={modelConfigInput.sequence_length}
               onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  train_split: parseInt(e.target.value),
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  sequence_length: e.target.value,
                 })
               }
-              type="number"
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">Batch Size:</label>
+
+            <label htmlFor="epochs">Epochs:</label>
             <input
-              value={modelConfig.batch_size}
+              type="number"
+              value={modelConfigInput.epochs}
               onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  batch_size: parseInt(e.target.value),
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  epochs: e.target.value,
                 })
               }
-              type="number"
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">Hidden Size:</label>
+
+            <label htmlFor="train_split">Train Split:</label>
             <input
-              value={modelConfig.hidden_size}
+              type="number"
+              value={modelConfigInput.train_split}
               onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  hidden_size: parseInt(e.target.value),
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  train_split: e.target.value,
                 })
               }
-              type="number"
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">Learning Rate:</label>
+
+            <label htmlFor="batch_size">Batch Size:</label>
             <input
-              value={modelConfig.learning_rate}
+              type="number"
+              value={modelConfigInput.batch_size}
               onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  learning_rate: parseInt(e.target.value),
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  batch_size: e.target.value,
                 })
               }
-              type="number"
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
-            <label htmlFor="">Droppout:</label>
+
+            <label htmlFor="hidden_size">Hidden Size:</label>
             <input
-              value={modelConfig.droppout}
+              type="number"
+              value={modelConfigInput.hidden_size}
               onChange={(e) =>
-                setModelConfig({
-                  ...modelConfig,
-                  droppout: parseInt(e.target.value),
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  hidden_size: e.target.value,
                 })
               }
-              type="number"
               className="shadow border border-neutral-400 rounded outline-none px-2"
             />
+
+            <label htmlFor="learning_rate">Learning Rate:</label>
+            <input
+              type="number"
+              value={modelConfigInput.learning_rate}
+              onChange={(e) =>
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  learning_rate: e.target.value,
+                })
+              }
+              className="shadow border border-neutral-400 rounded outline-none px-2"
+            />
+
+            <label htmlFor="dropout">Dropout:</label>
+            <input
+              type="number"
+              value={modelConfigInput.dropout}
+              onChange={(e) =>
+                setModelConfigInput({
+                  ...modelConfigInput,
+                  dropout: e.target.value,
+                })
+              }
+              className="shadow border border-neutral-400 rounded outline-none px-2"
+            />
+
             <button
-              className="bg-blue-500 text-white shadow rounded"
-              onClick={() => onSubmit()}
+              className="bg-blue-500 text-white shadow rounded px-4 py-2"
+              onClick={onSubmit}
             >
               Submit
             </button>
           </div>
-          <LineChart elu={elu} tanh={tanh} />
+
+          <div className="flex">
+            <LineChart elu={elu} tanh={tanh} />
+          </div>
         </div>
       </main>
     </div>
